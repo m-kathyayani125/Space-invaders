@@ -256,6 +256,9 @@ const keys={
     }
 
 }
+/* *** 7. SPRAWNING GRIDS*** */
+let frames=1//initiaalising frame count to 0
+let randomInterval=Math.floor((Math.random()*500)+200)//to create random interval between 500 and 1000 for sprawning grids
 function animate(){
     requestAnimationFrame(animate)
     c.fillStyle='black'
@@ -303,6 +306,13 @@ function animate(){
     else{
         player.velocity.x = 0
     }
+    console.log(frames)
+    if(frames%randomInterval===0){
+        frame=0
+        grids.push(new Grid())
+        randomInterval=Math.floor((Math.random()*500)+500)
+    }
+    frames++//increment in frame count after each frame
 }
 
 animate()
