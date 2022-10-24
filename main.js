@@ -1,11 +1,13 @@
 
+const scoreEl=document.getElementById('scoreEl');
 /* *** 1.SETTING UP THE CANVAS*** */
 const canvas=document.getElementById('canvas1')
 const c = canvas.getContext('2d')
 
 //fixing the dimensions of canvas to fit covering the whole screen
-canvas.width= window.innerWidth
-canvas.height=window.innerHeight
+canvas.width= 1024
+canvas.height=576
+
 
 /* *** 2.CREATING THE PLAYER*** */
 class Player{
@@ -16,7 +18,8 @@ class Player{
             x:0,
             y:0
         }
-        
+        this.rotation=0
+        this.opacity=1
         const image=new Image()
         image.src='My project.png'
 
@@ -46,13 +49,13 @@ class Player{
         //c.fillRect(this.position.x,this.position.y,this.width,this.height)
 
        
-
-
+        c.save()
+        c.globalAlpha=this.opacity
         //setting image to player
         //but the image needs to be loaded before it can be drawn
         //if(this.image)//saying if image is loaded then draw it
         c.drawImage(this.image,this.position.x,this.position.y,this.width,this.height)
-    
+        c.restore()
     }
 
     update(){
@@ -63,6 +66,7 @@ class Player{
         }
         
     }
+    
 }
 /* *** 4.CREATING THE projectile*** */
 
@@ -73,16 +77,17 @@ class Player{
 //4.garbage collection of projectiles out of screen--by splice in animate function
 
 //4.1 creating projectile class
+
 class Projectile{
     constructor({position,velocity}){
         this.position=position
-        this.radius=3
+        this.radius=4
         this.velocity=velocity
     }
     draw(){//for projectile to be drawn
         c.beginPath()
         c.arc(this.position.x,this.position.y,this.radius,0,Math.PI*2)
-        c.fillStyle='red'
+        c.fillStyle='#DC5F00'
         c.fill()
         c.closePath()
     }
@@ -92,7 +97,84 @@ class Projectile{
         this.position.y += this.velocity.y
     }
 }
- 
+/* *** 9.CREATING INVADER PROJECTILE*** */
+
+//STEPS:
+//1.create rectangular projectiles for invader--done by creating InvaderProjectile class
+//2.create array to store projectiles--invaderProjectiles=[]
+//3.defining shoot function for invader--invaderProjectiles.push(new InvaderProjectile())
+//4. calling update function of invader projectile
+//5. sprawning invader projectiles
+//6. garbage collection of projectiles out of screen--by splice in animate function
+//7.collision detection for invader projectiles to remove player when ivader projectiles hit player
+//8. creating particles for invader projectiles
+//9. dissapearing invader projectiles when hit by player projectile
+
+//9.1 creating InvaderProjectile class
+class InvaderProjectile{
+    constructor({position,velocity}){
+        this.position=position
+        this.velocity=velocity
+
+        this.width=3
+        this.height=10
+    }
+    draw(){//for projectile to be drawn
+        c.fillStyle='#FFB200'
+        c.fillRect(this.position.x,this.position.y,this.width,this.height)
+    }
+    update(){//for projectile to move
+        this.draw()
+        this.position.x += this.velocity.x
+        this.position.y += this.velocity.y
+    }
+
+    
+}
+
+/* *** 10.ENEMY EXPLOSION*** */
+
+//STEPS:
+//1.create enemy explosion--done by creating Particle class
+//2.create array to store particles--particles=[]
+//3.rending particles--particles.push(new Particle())
+//4.creating particles
+//5.fading particles
+
+class Particle{
+    constructor({position,velocity,radius,color,fades}){
+        this.position=position
+        this.radius=radius
+        this.color=color
+        this.velocity=velocity
+        this.opacity=1
+        //11.2
+        this.fades=fades
+    }
+    draw(){//for projectile to be drawn
+        c.save()
+        //10.5 fading particles
+        c.globalAlpha=this.opacity
+        c.beginPath()
+        c.arc(this.position.x,this.position.y,this.radius,0,Math.PI*2)
+        c.fillStyle=this.color
+        c.fill()
+        c.closePath()
+        c.restore()
+    }
+    update(){//for projectile to move
+
+        this.draw()
+        this.position.x += this.velocity.x
+        this.position.y += this.velocity.y
+    
+        //10.5 fading particles
+        if(this.fades)
+        this.opacity -= 0.01
+        //but these come back after fading...so we need to remove them when opacity is less than 0--done by splice in animate function
+    }
+}
+
 /* *** 5.CREATING THE ENEMY*** */
 //STEPS:
 //1.create enemy--done by creating Enemy class
@@ -151,6 +233,21 @@ class Invader{
         }
         
     }
+
+    //9.3 creating shoot function for invader
+    shoot(invaderProjectiles){
+        invaderProjectiles.push(new InvaderProjectile({
+            position:{//projectile comes from bottom middle of invader
+                x:this.position.x+this.width/2,
+                y:this.position.y+this.height
+            },
+            velocity:{
+                x:0,
+                y:5
+            }
+        }))
+                
+    }
 }
 
 /* *** 6.CREATING MULTIPLE ENEMIES*** */
@@ -187,7 +284,7 @@ class Grid{//grid is the container for the enemies
         const cols=Math.floor(Math.random()*5+10)//random number of cols between 10 and 15
         const rows=Math.floor(Math.random()*3+2)//random number of rows between 2 and 5
 
-        this.width=cols*25//width of grid
+        this.width=cols*30//width of grid
         for(let i=0;i<cols;i++){
             for(let j=0;j<rows;j++){
             this.invaders.push(
@@ -238,6 +335,12 @@ const grids=[new Grid()]
 //the above line doesnot display image as it needs time for image to load and the function is called only once befor the image loads
 //so we need to call the function again by then image loads and get displayed
 
+//9.2 creating array to store invader projectiles
+const invaderProjectiles=[]
+
+//10.2 creating array 
+const particles=[]
+
 
 //3.1 player idle when no key is pressed
 //to help keyboard event listener to know which key is pressed
@@ -257,11 +360,63 @@ const keys={
 
 }
 /* *** 7. SPRAWNING GRIDS*** */
+
+//STEPS:
+//1.initialise frames to create frames after certain frame count.
+//2.create random frame count intervals
+//3.increment framecount for every frame
+//4.push new grid after certain frame count interval
+
+//7.1 initialising frames count
 let frames=1//initiaalising frame count to 0
+
+
+//7.2 creating random frame count intervals
 let randomInterval=Math.floor((Math.random()*500)+200)//to create random interval between 500 and 1000 for sprawning grids
+//9.9 game over 
+let game={
+    over:false,
+    active:true
+}
+let score=0
+/* *** 11.BACKGROUND STARS*** */
+//STEPS:
+//1.create random stars in background
+//2.prevent fading
+//3.respawn stars after going out of screen
+
+//11.1 creating random stars in background
+for(let i=0;i<100;i++){
+    particles.push(new Particle({
+        position:{
+            x:Math.random()*canvas.width,
+            y:Math.random()*canvas.height
+        },
+        velocity:{
+            x:0,
+            y:0.3
+        },
+        radius:Math.random()*1.5,
+        color:'white'
+    }))
+}
+
+function createParticles({object,color,fades}){
+    for(let i=0;i<15;i++){
+        particles.push(new Particle({
+            position:{x:object.position.x+object.width/2,y:object.position.y+object.height/2},
+            velocity:{x:(Math.random()-0.5)*5,y:(Math.random()-0.5)*5},
+            radius:Math.random()*3,
+            color:color || '#2192FF',
+            fades
+        }))
+    }
+}
 function animate(){
+    if(!game.active)return
+
     requestAnimationFrame(animate)
-    c.fillStyle='black'
+    c.fillStyle='#251B37'
     c.fillRect(0,0,canvas.width,canvas.height)
 
     //5.3 calling invader.update to animate enemy
@@ -269,6 +424,64 @@ function animate(){
 
     player.update()
     //player.draw()
+    
+    //10.3 rendering particles
+    particles.forEach((particle,i)=>{
+
+        //11.3 respawning stars after going out of screen
+        if(particle.position.y-particle.radius>canvas.height){
+            particle.position.x=Math.random()*canvas.width,
+            particle.position.y=-particle.radius
+
+        }
+
+
+        //10.5 removing particles after opacity is 0
+        if(particle.opacity<=0)
+        {
+            setTimeout(()=>{
+            particles.splice(i,1)
+            },0)
+        }
+        else{
+        particle.update()
+        }
+    })
+    //9.4 calling update function of invader projectile
+    invaderProjectiles.forEach((invaderProjectile,index)=>{//to animate invader projectiles 
+
+        //9.6 garbage collection for invader projectiles
+        if(invaderProjectile.position.y+invaderProjectile.height>=canvas.height){//to remove invader projectiles when they hit the bottom of screen
+            setTimeout(()=>{//to remove invader projectiles after 1 second  
+                invaderProjectiles.splice(index,1)//to remove invader projectiles from array
+            },0)
+        }
+        else
+        invaderProjectile.update()
+
+        //9.7 collision detection for invader projectiles to remove player when ivader projectiles hit player
+        if(invaderProjectile.position.x+invaderProjectile.width>=player.position.x 
+            && invaderProjectile.position.x<=player.position.x+player.width 
+            && invaderProjectile.position.y+invaderProjectile.height>=player.position.y ){
+                console.log('youlose')
+                //9.9 disappearing player and invader projectile when player is hit by invader projectile
+                setTimeout(()=>{//to remove invader projectiles after 1 second  
+                    invaderProjectiles.splice(index,1)//to remove invader projectiles from array
+                    player.opacity=0
+                    game.over=true
+                },0)
+                setTimeout(()=>{//to stop game after the player dies
+                    
+                    game.active=false
+                },1500)
+                //9.8 creating particles when player is hit
+                createParticles({
+                    object:player,
+                    color:'#FF731D',
+                    fades:true
+                })
+            }
+    })
     projectiles.forEach((projectile,index)=>{
         projectile.update()
         //4.4 garbage collection
@@ -281,11 +494,70 @@ function animate(){
         else projectile.update()
     })
 
+    /* *** 8. SHOOT INVADERS*** */
+    //STEPS:
+    //1.collision detection between projectile and invader
+    //2.if collision detected then remove projectile and invader
+    //3.update grid width as ivaders die
+    //4.remove grid if all invaders are dead
+
     //6.4 to display a invader
-    grids.forEach(grid=>{
+    grids.forEach((grid,gridIndex)=>{
         grid.update()
-        grid.invaders.forEach(invader=>{
+
+        //9.5 sprawning invader projectiles
+        if(frames%100===0 && grid.invaders.length>0){
+            grid.invaders[Math.floor(Math.random()*grid.invaders.length)].shoot(invaderProjectiles)
+        }
+        grid.invaders.forEach((invader,i)=>{
             invader.update({velocity:grid.velocity})//6.7 each invader has diff velocity..to make invaders move
+
+            //8.1.collision detection
+            projectiles.forEach((projectile,index)=>{
+                if(
+                    projectile.position.y-projectile.radius<=invader.position.y+invader.height &&//from top to projectilr top is less than projectile bottom
+                    projectile.position.x+projectile.radius>=invader.position.x &&//if right of projectile is greater than left side of invader
+                    projectile.position.x-projectile.radius<=invader.position.x+invader.width &&//left od projectile is less than right of invader
+                    projectile.position.y+projectile.radius>=invader.position.y//bottom of projectile is greater than top of invader
+                ){
+
+                    
+                    //8.2 if collision detected then remove projectile and invader
+                    setTimeout(()=>{
+                        const invaderFound=grid.invaders.find(invader2=>invader2===invader)//to find the invader that is hit
+                        const projectileFound=projectiles.find(projectile2=>projectile2===projectile)//to find the projectile that is hit
+
+
+                        if(invaderFound && projectileFound){
+
+                            score+=100
+                            console.log(score)
+                            scoreEl.innerHTML=score
+                            //10.4 creating particles
+                            createParticles({
+                                object:invader,
+                                fades:true
+                            })
+                            grid.invaders.splice(i,1)//remove that invader with respective index- one at once
+                            projectiles.splice(index,1)//remove that projectilr with respective index- one at once
+                        
+                            //8.3 updating grid width
+                            if(grid.invaders.length>0){//if there are invaders left in the grid
+                                const firstInvader=grid.invaders[0]
+                                const lastInvader=grid.invaders[grid.invaders.length-1]
+
+                                grid.width=lastInvader.position.x-firstInvader.position.x+lastInvader.width//grid width is updated to distance between left od first invader to right of last invader
+                                grid.position.x=firstInvader.position.x//grid position is updated to left of first invader
+                            }
+                            //8.4 removing grid if all invaders are dead
+                            else{
+                                grids.splice(gridIndex,1)
+                            }
+                        }
+                    },0)//to prevent flashing of projectile
+                }
+            })
+
         })
     })
 
@@ -307,11 +579,15 @@ function animate(){
         player.velocity.x = 0
     }
     console.log(frames)
+    //7.4 push new grid for different frame count intervals
     if(frames%randomInterval===0){
         frame=0
         grids.push(new Grid())
         randomInterval=Math.floor((Math.random()*500)+500)
     }
+
+    
+    //7.3 incrementing framecount for every frame
     frames++//increment in frame count after each frame
 }
 
@@ -327,6 +603,8 @@ animate()
 //3.2 moving the player when key is pressed
 //when key presed it moves
 window.addEventListener('keydown',({key})=>{
+
+    if(game.over)return//to prevent player from moving when game is over
     //console.log(key)
     switch(key){
         case 'a':
