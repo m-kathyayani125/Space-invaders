@@ -250,6 +250,8 @@ class Invader{
     }
 }
 
+// deploymrnt in gitub
+
 /* *** 6.CREATING MULTIPLE ENEMIES*** */
 
 //STEPS:
